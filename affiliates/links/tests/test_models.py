@@ -1,9 +1,13 @@
 from datetime import date
 
+from django.core.management import call_command
+
 from nose.tools import eq_
 
+from affiliates.banners.models import Category, TextBanner
+from affiliates.banners.tests import TextBannerFactory
 from affiliates.base.tests import TestCase
-from affiliates.links.models import Link
+from affiliates.links.models import DataPoint, Link
 from affiliates.links.tests import DataPointFactory, LinkFactory
 
 
@@ -23,3 +27,23 @@ class LinkTests(TestCase):
 
         # 29 + 35 + 7 + 7 = 78 clicks
         eq_(Link.objects.total_link_clicks(), 78)
+
+
+class DataPointTests(TestCase):
+    def test_add_metric(self):
+        """
+        add_metric should update the metric count for the datapoint and
+        all of it's parents that have denormalized counts.
+        """
+        banner = TextBannerFactory.create()
+        datapoint = DataPointFactory.create(date=date(2014, 1, 1), link_clicks=7,
+                                            link__banner_variation__banner=banner)
+        call_command('denormalize_metrics')
+
+        datapoint.add_metric('link_clicks', -2, save=True)
+
+        # Re-query from database to ensure new values.
+        eq_(DataPoint.objects.get(pk=datapoint.pk).link_clicks, 5)
+        eq_(Link.objects.get(pk=datapoint.link.pk).link_clicks, 5)
+        eq_(TextBanner.objects.get(pk=banner.pk).link_clicks, 5)
+        eq_(Category.objects.get(pk=banner.category.pk).link_clicks, 5)

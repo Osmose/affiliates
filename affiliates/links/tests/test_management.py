@@ -1,18 +1,23 @@
 from datetime import date, timedelta
 
+from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from mock import patch
+from mock import call, Mock, patch
 from nose.tools import eq_, ok_
 
 from affiliates.banners.models import TextBanner, Category
 from affiliates.banners.tests import CategoryFactory, TextBannerFactory
 from affiliates.base.tests import aware_date, aware_datetime, TestCase
 from affiliates.links.google_analytics import AnalyticsError
-from affiliates.links.management.commands import (aggregate_old_datapoints, collect_ga_data,
-                                                  denormalize_metrics, update_leaderboard)
-from affiliates.links.models import DataPoint, LeaderboardStanding, Link
-from affiliates.links.tests import DataPointFactory, LeaderboardStandingFactory, LinkFactory
+from affiliates.links.management.commands import (aggregate_old_datapoints, analyze_metrics,
+                                                  collect_ga_data, denormalize_metrics,
+                                                  update_leaderboard)
+from affiliates.links.models import (DataPoint, FirefoxDownload, FirefoxOSReferral,
+                                     LeaderboardStanding, Link, LinkClick)
+from affiliates.links.tests import (DataPointFactory, FirefoxDownloadFactory,
+                                    FirefoxOSReferralFactory, LeaderboardStandingFactory,
+                                    LinkClickFactory, LinkFactory)
 from affiliates.users.tests import UserFactory
 
 
@@ -277,3 +282,59 @@ class DenormalizeMetricsTests(TestCase):
         eq_(banner1.link_clicks, 14)
         eq_(banner2.link_clicks, 6)
         eq_(category.link_clicks, 20)
+
+
+class AnalyzeMetricsTests(TestCase):
+    def setUp(self):
+        self.command = analyze_metrics.Command()
+        self.command.quiet = False
+
+    def test_handle_quiet(self):
+        """
+        handle_quiet should run the analysis functions for each metric
+        and then clear out their tables.
+        """
+        LinkClickFactory.create_batch(2, datapoint__date=date(2014, 1, 1))
+        FirefoxDownloadFactory.create_batch(2, datapoint__date=date(2014, 1, 1))
+        FirefoxOSReferralFactory.create_batch(2, datapoint__date=date(2014, 1, 1))
+
+        self.command.check_user_agent_patterns = Mock()
+        self.command.handle_quiet()
+
+        expected_calls = [call('firefoxdownload', 'firefox_downloads'),
+                          call('firefoxosreferral', 'firefox_os_referrals'),
+                          call('linkclick', 'link_clicks')]
+        eq_(self.command.check_user_agent_patterns.call_args_list, expected_calls)
+
+        eq_(LinkClick.objects.count(), 0)
+        eq_(FirefoxDownload.objects.count(), 0)
+        eq_(FirefoxOSReferral.objects.count(), 0)
+
+    def test_check_user_agent_patterns(self):
+        """
+        check_user_agent_patterns should remove clicks for each
+        user-agent matching a known-bad user-agent.
+        """
+        datapoint1, datapoint2 = DataPointFactory.create_batch(
+            2, link_clicks=5, date=date(2014, 1, 1))
+
+        # Denormalize to avoid subtracting from 0 on parent relations.
+        call_command('denormalize_metrics')
+
+        curl = 'curl/7.9.8 (i686-pc-linux-gnu) libcurl 7.9.8 (OpenSSL 0.9.6b) (ipv6 enabled)'
+        wget = 'Wget/1.9.1'
+        phantomjs = ('Mozilla/5.0 (Unknown; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) '
+                     'PhantomJS/1.9.1 Safari/534.34')
+
+        LinkClickFactory.create(datapoint=datapoint1, user_agent='Firefox')
+        LinkClickFactory.create(datapoint=datapoint1, user_agent=curl)
+        LinkClickFactory.create(datapoint=datapoint2, user_agent=wget)
+        LinkClickFactory.create(datapoint=datapoint2, user_agent=phantomjs)
+
+        # Mocking add_metric on the datapoints from another queryset and
+        # asserting on which datapoint it was called is a pain, so let's
+        # just do some old fashioned number checking.
+        self.command.check_user_agent_patterns('linkclick', 'link_clicks')
+        datapoint1, datapoint2 = DataPoint.objects.order_by('id')
+        eq_(datapoint1.link_clicks, 4)
+        eq_(datapoint2.link_clicks, 3)

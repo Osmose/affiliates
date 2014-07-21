@@ -17,6 +17,6 @@ class QuietCommand(BaseCommand):
     def handle_quiet(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def output(self, msg):
+    def output(self, msg, *args, **kwargs):
         if not self.quiet:
-            print msg
+            print msg.format(*args, **kwargs)

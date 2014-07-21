@@ -97,6 +97,44 @@ class DataPoint(CachingMixin, models.Model):
     class Meta:
         unique_together = ('link', 'date')
 
+    def add_metric(self, metric, count, save=False):
+        """
+        Add to a metric count for this datapoint, including denormalized
+        counts stored on related objects.
+        """
+        updated_count = models.F(metric) + count
+        setattr(self, metric, updated_count)
+        setattr(self.link, metric, updated_count)
+        setattr(self.link.banner, metric, updated_count)
+        setattr(self.link.banner.category, metric, updated_count)
+
+        if save:
+            self.save()
+            self.link.save()
+            self.link.banner.save()
+            self.link.banner.category.save()
+
+
+class Metric(models.Model):
+    datapoint = models.ForeignKey(DataPoint)
+    ip = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class LinkClick(Metric):
+    attr_name = 'link_clicks'
+
+
+class FirefoxDownload(Metric):
+    attr_name = 'firefox_downloads'
+
+
+class FirefoxOSReferral(Metric):
+    attr_name = 'firefox_os_referrals'
+
 
 class LeaderboardStanding(CachingMixin, models.Model):
     """Ranking in a leaderboard for a specific metric."""

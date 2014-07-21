@@ -25,3 +25,23 @@ class LeaderboardStandingFactory(DjangoModelFactory):
     ranking = Sequence(lambda n: n)
     user = SubFactory(UserFactory)
     metric = 'link_clicks'
+
+
+class MetricFactory(DjangoModelFactory):
+    ABSTRACT_FACTORY = True
+
+    datapoint = SubFactory(DataPointFactory)
+    ip = '68.0.0.1'
+    user_agent = 'Firefox'
+
+
+class LinkClickFactory(MetricFactory):
+    FACTORY_FOR = models.LinkClick
+
+
+class FirefoxDownloadFactory(MetricFactory):
+    FACTORY_FOR = models.FirefoxDownload
+
+
+class FirefoxOSReferralFactory(MetricFactory):
+    FACTORY_FOR = models.FirefoxOSReferral

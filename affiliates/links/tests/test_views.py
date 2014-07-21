@@ -43,6 +43,8 @@ class LinkReferralViewTest(TestCase):
 
     def test_add_click(self):
         request = self.factory.get('/')
+        request.META['HTTP_X_FORWARDED_FOR'] = '68.0.0.1'
+        request.META['HTTP_USER_AGENT'] = 'Firefox'
         link = LinkFactory.create()
 
         with patch('affiliates.links.views.add_click') as add_click:
@@ -50,7 +52,8 @@ class LinkReferralViewTest(TestCase):
                 timezone.now.return_value = aware_datetime(2014, 4, 7)
 
                 self.view(request, pk=link.pk)
-                add_click.delay.assert_called_with(link.id, date(2014, 4, 7))
+                add_click.delay.assert_called_with(link.id, date(2014, 4, 7), '68.0.0.1',
+                                                   'Firefox')
 
 
 class LegacyLinkReferralViewTests(TestCase):

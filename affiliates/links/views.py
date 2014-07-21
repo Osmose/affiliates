@@ -5,6 +5,7 @@ from django.views.generic import DetailView
 
 from braces.views import LoginRequiredMixin
 from csp.decorators import csp_exempt
+from ipware.ip import get_real_ip
 
 from affiliates.links.models import Link
 from affiliates.links.tasks import add_click
@@ -29,8 +30,13 @@ class LinkReferralView(DetailView):
         return super(LinkReferralView, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
+        # Generate response first so self.object is set.
         response = super(LinkReferralView, self).get(request, *args, **kwargs)
-        add_click.delay(self.object.id, timezone.now().date())
+
+        ip = get_real_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')[:254]
+        add_click.delay(self.object.id, timezone.now().date(), ip, user_agent)
+
         return response
 
 

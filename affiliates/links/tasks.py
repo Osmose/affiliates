@@ -1,30 +1,20 @@
-from django.db.models import F
-
+import waffle
 from celery.decorators import task
 
-from affiliates.links.models import Link
+from affiliates.links.models import Link, LinkClick
 
 
 @task
-def add_click(link_id, date_today):
+def add_click(link_id, date_today, ip, user_agent):
     """Increment the click count for a link."""
     try:
-        link = Link.objects.prefetch_related('banner_variation__banner__category').get(id=link_id)
+        link = Link.objects.get(id=link_id)
     except Link.DoesNotExist:
         return
 
     datapoint, created = link.datapoint_set.get_or_create(date=date_today)
-    datapoint.link_clicks = F('link_clicks') + 1
-    datapoint.save()
+    datapoint.add_metric('link_clicks', 1, save=True)
 
-    # Update denormalized counts.
-    link.link_clicks = F('link_clicks') + 1
-    link.save()
-
-    banner = link.banner
-    banner.link_clicks = F('link_clicks') + 1
-    banner.save()
-
-    category = banner.category
-    category.link_clicks = F('link_clicks') + 1
-    category.save()
+    # Add link click entry for this click.
+    if waffle.switch_is_active('fraud_detection'):
+        LinkClick.objects.create(datapoint=datapoint, ip=ip, user_agent=user_agent)
