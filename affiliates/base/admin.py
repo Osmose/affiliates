@@ -36,5 +36,11 @@ class NewsItemModelAdmin(BaseModelAdmin):
         super(NewsItemModelAdmin, self).save_model(request, obj, form, change)
 
 
+# Create admin site now so we can register news items to it even if it
+# isn't patched until later.
 admin_site = AffiliatesAdminSite()
+def patch_admin_site():
+    admin.site = admin_site
+
+
 admin_site.register(NewsItem, NewsItemModelAdmin)

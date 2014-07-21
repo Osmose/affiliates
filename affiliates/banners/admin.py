@@ -5,7 +5,7 @@ from form_utils.widgets import ImageWidget
 from mptt.admin import MPTTModelAdmin
 
 from affiliates.banners import models
-from affiliates.base.admin import admin_site, BaseModelAdmin
+from affiliates.base.admin import BaseModelAdmin
 
 
 class CategoryModelAdmin(MPTTModelAdmin):
@@ -55,7 +55,7 @@ class FirefoxUpgradeBannerModelAdmin(BaseModelAdmin):
     inlines = (FirefoxUpgradeBannerVariationInline,)
 
 
-admin_site.register(models.Category, CategoryModelAdmin)
-admin_site.register(models.ImageBanner, ImageBannerModelAdmin)
-admin_site.register(models.TextBanner, TextBannerModelAdmin)
-admin_site.register(models.FirefoxUpgradeBanner, FirefoxUpgradeBannerModelAdmin)
+admin.site.register(models.Category, CategoryModelAdmin)
+admin.site.register(models.ImageBanner, ImageBannerModelAdmin)
+admin.site.register(models.TextBanner, TextBannerModelAdmin)
+admin.site.register(models.FirefoxUpgradeBanner, FirefoxUpgradeBannerModelAdmin)

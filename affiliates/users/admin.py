@@ -1,7 +1,6 @@
 from django.contrib import admin, auth
 from django.utils.safestring import mark_safe
 
-from affiliates.base.admin import admin_site
 from affiliates.links.models import Link
 from affiliates.users.models import UserProfile
 
@@ -37,4 +36,5 @@ class UserAdmin(auth.admin.UserAdmin):
     inlines = [UserProfileInline, LinkInline]
 
 
-admin_site.register(auth.models.User, UserAdmin)
+admin.site.unregister(auth.models.User)
+admin.site.register(auth.models.User, UserAdmin)

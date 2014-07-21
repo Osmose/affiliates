@@ -1,4 +1,6 @@
-from affiliates.base.admin import admin_site, BaseModelAdmin
+from django.contrib import admin
+
+from affiliates.base.admin import BaseModelAdmin
 from affiliates.links.models import Link
 
 
@@ -28,4 +30,4 @@ class LinkAdmin(BaseModelAdmin):
     banner_variation.allow_tags = True
 
 
-admin_site.register(Link, LinkAdmin)
+admin.site.register(Link, LinkAdmin)

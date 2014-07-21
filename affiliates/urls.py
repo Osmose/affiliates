@@ -6,12 +6,13 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from funfactory.monkeypatches import patch
 
 import affiliates.base.views
-from affiliates.base.admin import admin_site
+from affiliates.base.admin import patch_admin_site
 
 
 # Apply funfactory monkeypatches.
 patch()
 
+patch_admin_site()  # Replace default admin site with Affiliates.
 admin.autodiscover()
 
 # Set 404 and 500 handlers.
@@ -34,7 +35,7 @@ urlpatterns = patterns('',
     (r'', include('django_browserid.urls')),
 
     (r'^admin/', include('smuggler.urls')),
-    (r'^admin/', include(admin_site.urls)),
+    (r'^admin/', include(admin.site.urls)),
 )
 
 

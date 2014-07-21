@@ -8,7 +8,7 @@ from form_utils.widgets import ImageWidget
 from affiliates.facebook.models import (FacebookBanner, FacebookBannerInstance,
                              FacebookBannerLocale, FacebookClickStats,
                              FacebookUser)
-from affiliates.base.admin import admin_site, BaseModelAdmin
+from affiliates.base.admin import BaseModelAdmin
 
 
 class FacebookBannerLocaleInline(admin.TabularInline):
@@ -26,7 +26,7 @@ class FacebookBannerAdmin(BaseModelAdmin):
         ('Images', {'fields': ('image', 'thumbnail')}),
     )
     inlines = [FacebookBannerLocaleInline]
-admin_site.register(FacebookBanner, FacebookBannerAdmin)
+admin.site.register(FacebookBanner, FacebookBannerAdmin)
 
 
 class FacebookBannerInstanceAdmin(BaseModelAdmin):
@@ -54,7 +54,7 @@ class FacebookBannerInstanceAdmin(BaseModelAdmin):
     def use_profile_image(self, instance):
         return bool(instance.custom_image)
     use_profile_image.boolean = True
-admin_site.register(FacebookBannerInstance, FacebookBannerInstanceAdmin)
+admin.site.register(FacebookBannerInstance, FacebookBannerInstanceAdmin)
 
 
 class FacebookUserAdmin(BaseModelAdmin):
@@ -71,4 +71,4 @@ class FacebookUserAdmin(BaseModelAdmin):
         }),
         ('Leaderboard', {'fields': ('leaderboard_position', 'total_clicks')}),
     )
-admin_site.register(FacebookUser, FacebookUserAdmin)
+admin.site.register(FacebookUser, FacebookUserAdmin)
