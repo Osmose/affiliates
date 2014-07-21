@@ -34,3 +34,6 @@
 [submodule "vendor-local/src/django-waffle"]
 	path = vendor-local/src/django-waffle
 	url = https://github.com/jsocol/django-waffle.git
+[submodule "vendor-local/src/django-ipware"]
+	path = vendor-local/src/django-ipware
+	url = https://github.com/un33k/django-ipware.git
