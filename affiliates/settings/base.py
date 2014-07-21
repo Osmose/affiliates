@@ -29,6 +29,7 @@ INSTALLED_APPS = list(INSTALLED_APPS) + [
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.admin',
+    'waffle',
 ]
 
 MIDDLEWARE_CLASSES = (
@@ -48,6 +49,7 @@ MIDDLEWARE_CLASSES = (
     'affiliates.base.middleware.FrameOptionsHeader',
     'affiliates.base.middleware.PrivacyMiddleware',
     'affiliates.links.middleware.StatsSinceLastVisitMiddleware',
+    'waffle.middleware.WaffleMiddleware',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS) + [

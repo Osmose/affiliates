@@ -31,3 +31,6 @@
 [submodule "vendor-local/src/django-form-utils"]
 	path = vendor-local/src/django-form-utils
 	url = git://github.com/carljm/django-form-utils.git
+[submodule "vendor-local/src/django-waffle"]
+	path = vendor-local/src/django-waffle
+	url = https://github.com/jsocol/django-waffle.git
