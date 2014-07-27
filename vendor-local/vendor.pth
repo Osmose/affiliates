@@ -18,4 +18,5 @@ src/django-qsstats-magic
 src/django-smuggler
 src/django-statsd
 src/django-waffle
+src/ipaddress
 src/pystatsd

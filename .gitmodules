@@ -37,3 +37,6 @@
 [submodule "vendor-local/src/django-ipware"]
 	path = vendor-local/src/django-ipware
 	url = https://github.com/un33k/django-ipware.git
+[submodule "vendor-local/src/ipaddress"]
+	path = vendor-local/src/ipaddress
+	url = https://github.com/phihag/ipaddress.git
