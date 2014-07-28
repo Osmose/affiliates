@@ -114,25 +114,38 @@ class DataPoint(CachingMixin, models.Model):
             self.link.banner.save()
             self.link.banner.category.save()
 
+    def __unicode__(self):
+        return u'<DataPoint: {0}>'.format(self.pk)
 
-class Metric(models.Model):
+
+class Event(models.Model):
+    """A single event for a certain metric. Used for fraud analysis."""
     datapoint = models.ForeignKey(DataPoint)
     ip = models.GenericIPAddressField(blank=True, null=True)
+    ip_group = models.CharField(max_length=255, blank=True, null=True)
     user_agent = models.CharField(max_length=255, blank=True)
 
     class Meta:
         abstract = True
 
+    @property
+    def attr_name(self):
+        """
+        Name of the attribute on DataPoints that tracks events of this
+        type.
+        """
+        raise NotImplementedError()
 
-class LinkClick(Metric):
+
+class LinkClick(Event):
     attr_name = 'link_clicks'
 
 
-class FirefoxDownload(Metric):
+class FirefoxDownload(Event):
     attr_name = 'firefox_downloads'
 
 
-class FirefoxOSReferral(Metric):
+class FirefoxOSReferral(Event):
     attr_name = 'firefox_os_referrals'
 
 

@@ -1,5 +1,6 @@
 import waffle
 from celery.decorators import task
+from ipaddress import ip_address
 
 from affiliates.links.models import Link, LinkClick
 
@@ -17,4 +18,22 @@ def add_click(link_id, date_today, ip, user_agent):
 
     # Add link click entry for this click.
     if waffle.switch_is_active('fraud_detection'):
-        LinkClick.objects.create(datapoint=datapoint, ip=ip, user_agent=user_agent)
+        try:
+            ip = ip_address(unicode(ip))
+            full_ip = ip.exploded
+            ip_group = _get_ip_group(ip)
+        except ValueError:
+            full_ip = None
+            ip_group = None
+
+        LinkClick.objects.create(datapoint=datapoint, ip=full_ip, ip_group=ip_group,
+                                 user_agent=user_agent)
+
+
+def _get_ip_group(ip):
+    if ip.version == 4:
+        return ip.exploded.rsplit('.', 1)[0]  # C Block
+    elif ip.version == 6:
+        return ip.exploded.rsplit(':', 5)[0]  # /48
+    else:
+        return None

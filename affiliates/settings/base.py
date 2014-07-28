@@ -419,3 +419,10 @@ FACEBOOK_APP_URL = lazy(facebook_app_url_lazy, str)()
 
 # Google Analytics
 GA_ACCOUNT_CODE = ''
+
+# Fraudulent click thresholds
+# TODO: Find a list of these rather than just relying on what we've
+# seen.
+BAD_USER_AGENTS = ('wget', 'curl', 'phantomjs')
+SINGLE_IP_THRESHOLD = 10
+IP_GROUP_THRESHOLD = 2000

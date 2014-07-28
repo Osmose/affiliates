@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+from functools import wraps
 from urlparse import urlsplit, urlunsplit
 
 from django.test import TestCase as DjangoTestCase
@@ -12,6 +13,7 @@ from funfactory.urlresolvers import get_url_prefix, Prefixer, set_url_prefix
 from mock import patch
 from nose.tools import eq_
 from tower import activate
+from waffle import Switch
 
 from affiliates.base import models
 from affiliates.facebook.tests import FacebookAuthClient
@@ -80,6 +82,39 @@ def aware_datetime(*args, **kwargs):
 
 def aware_date(*args, **kwargs):
     return aware_datetime(*args, **kwargs).date()
+
+
+def waffle_switch(switch_name, active=True):
+    """Decorator that temporarily creates a waffle switch."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            switch = Switch.objects.create(name=switch_name, active=active)
+            result = f(*args, **kwargs)
+            switch.delete()
+            return result
+        return wrapped
+    return decorator
+
+
+class CONTAINS(object):
+    """
+    An object that is equal to another value if the other value contains
+    the value given in the constructor.
+
+    Useful mainly for argument assertions with mock.
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def __eq__(self, other):
+        return self.value in other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return u'CONTAINS({0})'.format(self.value)
 
 
 class NewsItemFactory(DjangoModelFactory):

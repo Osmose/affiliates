@@ -1,16 +1,16 @@
 from datetime import date, timedelta
 
-from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.test.utils import override_settings
 
-from mock import call, Mock, patch
+from mock import ANY, call, Mock, patch
 from nose.tools import eq_, ok_
 
 from affiliates.banners.models import TextBanner, Category
 from affiliates.banners.tests import CategoryFactory, TextBannerFactory
-from affiliates.base.tests import aware_date, aware_datetime, TestCase
+from affiliates.base.tests import aware_date, aware_datetime, CONTAINS, TestCase, waffle_switch
 from affiliates.links.google_analytics import AnalyticsError
-from affiliates.links.management.commands import (aggregate_old_datapoints, analyze_metrics,
+from affiliates.links.management.commands import (aggregate_old_datapoints, analyze_events,
                                                   collect_ga_data, denormalize_metrics,
                                                   update_leaderboard)
 from affiliates.links.models import (DataPoint, FirefoxDownload, FirefoxOSReferral,
@@ -284,11 +284,24 @@ class DenormalizeMetricsTests(TestCase):
         eq_(category.link_clicks, 20)
 
 
-class AnalyzeMetricsTests(TestCase):
+class AnalyzeEventsTests(TestCase):
     def setUp(self):
-        self.command = analyze_metrics.Command()
+        self.command = analyze_events.Command()
         self.command.quiet = False
 
+    @waffle_switch('fraud_detection', False)
+    def test_handle_quiet_fraud_off(self):
+        """If fraud detection is off, do not run analysis."""
+        LinkClickFactory.create_batch(2, datapoint__date=date(2014, 1, 1))
+
+        self.command.check_user_agent_patterns = Mock()
+        self.command.check_ip_address_patterns = Mock()
+        self.command.handle_quiet()
+
+        ok_(not self.command.check_user_agent_patterns.called)
+        ok_(not self.command.check_ip_address_patterns.called)
+
+    @waffle_switch('fraud_detection', True)
     def test_handle_quiet(self):
         """
         handle_quiet should run the analysis functions for each metric
@@ -299,27 +312,25 @@ class AnalyzeMetricsTests(TestCase):
         FirefoxOSReferralFactory.create_batch(2, datapoint__date=date(2014, 1, 1))
 
         self.command.check_user_agent_patterns = Mock()
+        self.command.check_ip_address_patterns = Mock()
         self.command.handle_quiet()
 
-        expected_calls = [call('firefoxdownload', 'firefox_downloads'),
-                          call('firefoxosreferral', 'firefox_os_referrals'),
-                          call('linkclick', 'link_clicks')]
-        eq_(self.command.check_user_agent_patterns.call_args_list, expected_calls)
+        expected_calls = [call(FirefoxDownload), call(FirefoxOSReferral), call(LinkClick)]
+        for expected_call in expected_calls:
+            ok_(expected_call in self.command.check_user_agent_patterns.call_args_list)
+            ok_(expected_call in self.command.check_ip_address_patterns.call_args_list)
 
         eq_(LinkClick.objects.count(), 0)
         eq_(FirefoxDownload.objects.count(), 0)
         eq_(FirefoxOSReferral.objects.count(), 0)
 
+    @override_settings(BAD_USER_AGENTS=('wget', 'curl', 'phantomjs'))
     def test_check_user_agent_patterns(self):
         """
         check_user_agent_patterns should remove clicks for each
         user-agent matching a known-bad user-agent.
         """
-        datapoint1, datapoint2 = DataPointFactory.create_batch(
-            2, link_clicks=5, date=date(2014, 1, 1))
-
-        # Denormalize to avoid subtracting from 0 on parent relations.
-        call_command('denormalize_metrics')
+        datapoint1, datapoint2 = DataPointFactory.create_batch(2, date=date(2014, 1, 1))
 
         curl = 'curl/7.9.8 (i686-pc-linux-gnu) libcurl 7.9.8 (OpenSSL 0.9.6b) (ipv6 enabled)'
         wget = 'Wget/1.9.1'
@@ -331,10 +342,46 @@ class AnalyzeMetricsTests(TestCase):
         LinkClickFactory.create(datapoint=datapoint2, user_agent=wget)
         LinkClickFactory.create(datapoint=datapoint2, user_agent=phantomjs)
 
-        # Mocking add_metric on the datapoints from another queryset and
-        # asserting on which datapoint it was called is a pain, so let's
-        # just do some old fashioned number checking.
-        self.command.check_user_agent_patterns('linkclick', 'link_clicks')
-        datapoint1, datapoint2 = DataPoint.objects.order_by('id')
-        eq_(datapoint1.link_clicks, 4)
-        eq_(datapoint2.link_clicks, 3)
+        self.command.remove_fraudulent_events = Mock()
+        self.command.check_user_agent_patterns(LinkClick)
+
+        expected_calls = [
+            call(datapoint1, 1, 'link_clicks', CONTAINS('curl')),
+            call(datapoint2, 1, 'link_clicks', CONTAINS('wget')),
+            call(datapoint2, 1, 'link_clicks', CONTAINS('phantomjs')),
+        ]
+        for expected_call in expected_calls:
+            ok_(expected_call in self.command.remove_fraudulent_events.call_args_list)
+
+    @override_settings(SINGLE_IP_THRESHOLD=10, IP_GROUP_THRESHOLD=2000)
+    def test_check_ip_address_patterns(self):
+        self.command.check_for_matching_attribute = Mock()
+        self.command.check_ip_address_patterns(LinkClick)
+
+        expected_calls = [call(LinkClick, 'ip', 10), call(LinkClick, 'ip_group', 2000)]
+        for expected_call in expected_calls:
+            ok_(expected_call in self.command.check_for_matching_attribute.call_args_list)
+
+    def test_check_for_matching_attribute(self):
+        """
+        If a group of events with the same non-null attribute value is
+        over the given threshold, check_for_matching_attribute should
+        remove them.
+        """
+        datapoint1 = DataPointFactory.create(date=date(2014, 1, 1))
+        LinkClickFactory.create_batch(11, ip='127.0.0.1', datapoint=datapoint1)
+        LinkClickFactory.create_batch(9, ip='127.0.0.2', datapoint__date=date(2014, 1, 1))
+        LinkClickFactory.create_batch(11, ip=None, datapoint__date=date(2014, 1, 1))
+
+        self.command.remove_fraudulent_events = Mock()
+        self.command.check_for_matching_attribute(LinkClick, 'ip', 10)
+
+        eq_(self.command.remove_fraudulent_events.call_count, 1)
+        self.command.remove_fraudulent_events.assert_called_with(datapoint1, 10, 'link_clicks',
+                                                                 ANY)
+
+    def test_remove_fraudulent_events(self):
+        datapoint = Mock()
+
+        self.command.remove_fraudulent_events(datapoint, 5, 'link_clicks', 'just because')
+        datapoint.add_metric.assert_called_with('link_clicks', -5, save=True)
