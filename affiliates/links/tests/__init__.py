@@ -45,3 +45,12 @@ class FirefoxDownloadFactory(MetricFactory):
 
 class FirefoxOSReferralFactory(MetricFactory):
     FACTORY_FOR = models.FirefoxOSReferral
+
+
+class FraudActionFactory(DjangoModelFactory):
+    FACTORY_FOR = models.FraudAction
+
+    datapoint = SubFactory(DataPointFactory)
+    count = 1
+    metric = 'link_clicks'
+    reason = 'just because'

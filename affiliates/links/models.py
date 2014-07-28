@@ -167,3 +167,33 @@ class LeaderboardStanding(CachingMixin, models.Model):
 
     def __unicode__(self):
         return u'{metric}: {ranking}'.format(metric=self.metric, ranking=self.ranking)
+
+
+class FraudAction(models.Model):
+    """
+    An automated action taken in response to suspected fraud. Admins are
+    able to review and reverse these actions.
+    """
+    datapoint = models.ForeignKey(DataPoint)
+    count = models.IntegerField()
+    metric = models.CharField(max_length=255)
+    reason = models.CharField(max_length=255)
+
+    executed_on = models.DateTimeField(default=None, null=True)
+    reversed_on = models.DateTimeField(default=None, null=True)
+
+    def execute(self):
+        if self.executed_on is None:
+            self.datapoint.add_metric(self.metric, self.count, save=True)
+            self.executed_on = timezone.now()
+            self.save()
+        else:
+            raise RuntimeError('Cannot execute action; it is already executed.')
+
+    def reverse(self):
+        if self.reversed_on is None:
+            self.datapoint.add_metric(self.metric, -self.count, save=True)
+            self.reversed_on = timezone.now()
+            self.save()
+        else:
+            raise RuntimeError('Cannot reverse action; it is already reversed.')

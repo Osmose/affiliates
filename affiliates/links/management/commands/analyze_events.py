@@ -4,7 +4,8 @@ from django.db.models import Count
 import waffle
 
 from affiliates.base.management.commands import QuietCommand
-from affiliates.links.models import DataPoint, FirefoxDownload, FirefoxOSReferral, LinkClick
+from affiliates.links.models import (DataPoint, FirefoxDownload, FirefoxOSReferral, FraudAction,
+                                     LinkClick)
 
 
 class Command(QuietCommand):
@@ -80,7 +81,7 @@ class Command(QuietCommand):
 
         for attr_value, datapoint_id, count in matching_events:
             reason = 'More than {count} {event_name}s from {attr_value}'.format(
-                count=count, event_name=Event.__name__, attr_value=(attr_value + '.*'))
+                count=count, event_name=Event.__name__, attr_value=(attr_value))
 
             datapoint = DataPoint.objects.get(pk=datapoint_id)
             self.remove_fraudulent_events(datapoint, count - 1, Event.attr_name, reason)
@@ -89,4 +90,5 @@ class Command(QuietCommand):
         msg = 'Removing {count} {metric} from link {pk}: {reason}'
         self.output(msg, count=count, metric=metric, pk=datapoint.link.pk, reason=reason)
 
-        datapoint.add_metric(metric, -count, save=True)
+        action = FraudAction(datapoint=datapoint, count=-count, metric=metric, reason=reason)
+        action.execute()

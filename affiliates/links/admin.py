@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from affiliates.base.admin import BaseModelAdmin
-from affiliates.links.models import Link
+from affiliates.links.models import FraudAction, Link
 
 
 class LinkAdmin(BaseModelAdmin):
@@ -30,4 +30,31 @@ class LinkAdmin(BaseModelAdmin):
     banner_variation.allow_tags = True
 
 
+class FraudActionAdmin(BaseModelAdmin):
+    list_display = ('banner_name', 'user_name', 'action_description', 'executed_on', 'reason',
+                    'reversed_on')
+    readonly_fields = ('datapoint', 'count', 'metric', 'reason', 'executed_on', 'reversed_on')
+    actions = ['reverse_actions']
+
+    def banner_name(self, action):
+        return action.datapoint.link.banner.name
+
+    def user_name(self, action):
+        return action.datapoint.link.user.display_name
+
+    def action_description(self, action):
+        return unicode(action.count) + ' ' + action.metric
+
+    def reverse_actions(self, request, queryset):
+        for action in queryset:
+            try:
+                action.reverse()
+            except RuntimeError:
+                msg = 'Error reversing action {0}: It has already been reversed.'.format(action.id)
+                self.message_user(request, msg, 'error')
+        self.message_user(request, 'Actions have been reversed.', 'info')
+    reverse_actions.short_description = 'Reverse selected actions'
+
+
 admin.site.register(Link, LinkAdmin)
+admin.site.register(FraudAction, FraudActionAdmin)

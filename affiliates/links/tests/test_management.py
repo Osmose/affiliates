@@ -13,7 +13,7 @@ from affiliates.links.google_analytics import AnalyticsError
 from affiliates.links.management.commands import (aggregate_old_datapoints, analyze_events,
                                                   collect_ga_data, denormalize_metrics,
                                                   update_leaderboard)
-from affiliates.links.models import (DataPoint, FirefoxDownload, FirefoxOSReferral,
+from affiliates.links.models import (DataPoint, FirefoxDownload, FirefoxOSReferral, FraudAction,
                                      LeaderboardStanding, Link, LinkClick)
 from affiliates.links.tests import (DataPointFactory, FirefoxDownloadFactory,
                                     FirefoxOSReferralFactory, LeaderboardStandingFactory,
@@ -381,7 +381,12 @@ class AnalyzeEventsTests(TestCase):
                                                                  ANY)
 
     def test_remove_fraudulent_events(self):
-        datapoint = Mock()
+        datapoint = DataPointFactory.create(date=date(2014, 1, 1))
 
-        self.command.remove_fraudulent_events(datapoint, 5, 'link_clicks', 'just because')
-        datapoint.add_metric.assert_called_with('link_clicks', -5, save=True)
+        with patch.object(FraudAction, 'execute', autospec=True) as fraud_execute:
+            self.command.remove_fraudulent_events(datapoint, 5, 'link_clicks', 'just because')
+            action = fraud_execute.call_args[0][0]
+            eq_(action.datapoint, datapoint)
+            eq_(action.count, -5)
+            eq_(action.metric, 'link_clicks')
+            eq_(action.reason, 'just because')
