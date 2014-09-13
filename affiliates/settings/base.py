@@ -87,7 +87,7 @@ DEFAULT_FROM_EMAIL = 'notifications@affiliates.mozilla.org'
 LOGIN_URL = reverse_lazy('users.login_required')
 AUTHENTICATION_BACKENDS = (
    'django.contrib.auth.backends.ModelBackend', # required for admin
-   'django_browserid.auth.BrowserIDBackend',
+   'django_browserid.auth.LocalBrowserIDBackend',
 )
 
 # Files

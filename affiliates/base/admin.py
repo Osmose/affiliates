@@ -1,14 +1,14 @@
 from django.contrib import admin
 from django.db import models
 
+from django_browserid.admin import BrowserIDAdminSite
 from form_utils.widgets import ImageWidget
-from funfactory.admin import SessionCsrfAdminSite
 
 from affiliates.base.models import NewsItem, NewsItemTranslation
 
 
-class AffiliatesAdminSite(SessionCsrfAdminSite):
-    pass
+class AffiliatesAdminSite(BrowserIDAdminSite):
+    include_password_form = True
 
 
 class BaseModelAdmin(admin.ModelAdmin):
