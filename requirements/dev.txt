@@ -3,10 +3,18 @@
 # package for developers (testing, docs, etc.), it goes in this file.
 
 -r compiled.txt
--r ../vendor/src/funfactory/funfactory/requirements/dev.txt
 
+# Documentation
+Sphinx==1.0.7
+sphinx_rtd_theme
+
+# Testing
+nose==1.0.0
+mock==1.0.1
 fudge==1.0.3
+-e git://github.com/jbalogh/django-nose.git#egg=django_nose
+-e git://github.com/jbalogh/test-utils.git#egg=test-utils
 -e git://github.com/rbarrois/factory_boy.git@42d3d4b8c543850668186440d5a3ce93e2832c5a#egg=factory_boy
 
-# Docs
-sphinx_rtd_theme
+# L10n
+translate-toolkit==1.8.0

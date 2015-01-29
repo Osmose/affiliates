@@ -1,0 +1,152 @@
+from urlparse import urljoin
+
+from . import base
+
+
+# Database
+##############################################################################
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'affiliates',
+        'USER': 'affiliates',
+        'PASSWORD': 'asdf',
+        'HOST': 'db',
+        'PORT': '',
+        'OPTIONS': {
+            'init_command': 'SET storage_engine=InnoDB',
+            'charset' : 'utf8',
+            'use_unicode' : True,
+        },
+        'TEST_CHARSET': 'utf8',
+        'TEST_COLLATION': 'utf8_general_ci',
+    },
+    # 'slave': {
+    # ...
+    # },
+}
+
+# Uncomment this and set to all slave DBs in use on the site.
+# SLAVE_DATABASES = ['slave']
+
+
+# Environment-specific Settings
+##############################################################################
+
+# Debugging displays nice error messages, but leaks memory. Set this to False
+# on all server instances and True only for development.
+DEBUG = TEMPLATE_DEBUG = True
+
+# Is this a development instance? Set this to True on development/master
+# instances and False on stage/prod.
+DEV = True
+
+# Time zone for the current installation. Default is America/Chicago. See
+# http://en.wikipedia.org/wiki/List_of_tz_database_time_zones for a list of
+# valid timezone values.
+#TIME_ZONE = 'America/New_York'
+
+# Uncomment this line if you are running a local development install without
+# HTTPS to disable HTTPS-only cookies.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# URL users will use to access your site, including the protocol, hostname, and
+# port. For local development, this will typically be `http://localhost:8000'.
+SITE_URL = 'http://docker:8000'
+
+# django-browserid requires you to specify audiences that are valid for your
+# site. An audience is a protocol + hosename + port that users will use to
+# access your site.
+#
+# In development, this is typically 'http://localhost:8000' or similar. In
+# production, this is typically the protocol and domain for the site.
+BROWSERID_AUDIENCES = [SITE_URL]
+
+# Set to enable Google Analytics
+#GA_ACCOUNT_CODE = ''
+
+# CDN for absolutify. Set to 'localhost:8000' for local development.
+CDN_DOMAIN = 'docker:8000'
+
+# Path to stylus executable
+STYLUS_BIN = 'stylus'
+
+# Uncomment to send email to the console, usually only for local development.
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Uncomment these to activate and customize Celery:
+#CELERY_ALWAYS_EAGER = False  # required to activate celeryd
+#BROKER_HOST = 'localhost'
+#BROKER_PORT = 5672
+#BROKER_USER = 'affiliates'
+#BROKER_PASSWORD = 'affiliates'
+#BROKER_VHOST = 'affiliates'
+#CELERY_RESULT_BACKEND = 'amqp'
+
+# Bug 719522
+# List of hashes of banner images for upgrade campaign
+#BANNERS_HASH = (
+#    '299839978f965e3b17d926572f91b4fbc340896c',
+#    '5f5e8cc58fac3f658fca66be259590ea42963aa8',
+#)
+
+# Settings for Affiliates Facebook app
+#FACEBOOK_APP_ID = ''
+#FACEBOOK_APP_SECRET = ''
+#FACEBOOK_APP_NAMESPACE = ''
+
+# Uncomment to enable logging of exceptions to the console for local
+# development.
+MIDDLEWARE_CLASSES = base.MIDDLEWARE_CLASSES + (
+    'affiliates.base.middleware.ExceptionLoggingMiddleware',
+)
+
+# Google Analytics API Credentials
+GA_API_ACCOUNT_EMAIL = ''
+GA_API_KEYFILE = ''
+GA_API_PROFILE_ID = ''
+
+
+# Error Reporting
+##############################################################################
+
+# Recipients of traceback emails and other notifications.
+ADMINS = (
+    # ('Your Name', 'your_email@domain.com'),
+)
+MANAGERS = ADMINS
+
+
+# Security
+##############################################################################
+
+# Playdoh ships with Bcrypt+HMAC by default because it's the most secure.
+# To use bcrypt, fill in a secret HMAC key. It cannot be blank.
+HMAC_KEYS = {
+    '2012-06-06': 'some secret',
+}
+
+from django_sha2 import get_password_hashers
+PASSWORD_HASHERS = get_password_hashers(base.BASE_PASSWORD_HASHERS, HMAC_KEYS)
+
+# Make this unique, and don't share it with anybody. It cannot be blank.
+SECRET_KEY = 'seekrit'
+
+
+# Logging
+##############################################################################
+
+# SYSLOG_TAG = "oneanddone_app"
+# LOGGING = dict(loggers=dict(playdoh={'level': logging.DEBUG}))
+
+# Common Event Format logging parameters
+#CEF_PRODUCT = 'Playdoh'
+#CEF_VENDOR = 'Mozilla'
+
+# Uncomment to configure statsd
+#STATSD_CLIENT = 'django_statsd.clients.statsd'
+#STATSD_HOST = 'localhost'
+#STATSD_PORT = 8125
+#STATSD_PREFIX = 'affiliates'

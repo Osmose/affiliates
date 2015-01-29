@@ -1,3 +1,4 @@
+import os
 import sys
 
 from .base import *
@@ -15,5 +16,13 @@ TEST = len(sys.argv) > 1 and sys.argv[1] == 'test'
 if TEST:
     try:
         from .test import *
+    except ImportError:
+        pass
+
+
+# Import docker settings
+if os.environ.get('DOCKER'):
+    try:
+        from .docker import *
     except ImportError:
         pass

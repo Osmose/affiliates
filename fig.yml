@@ -1,0 +1,19 @@
+db:
+  image: mysql
+  environment:
+    - MYSQL_ROOT_PASSWORD=asdf
+    - MYSQL_USER=affiliates
+    - MYSQL_PASSWORD=asdf
+    - MYSQL_DATABASE=affiliates
+web:
+  build: .
+  ports:
+    - "8000:8000"
+  volumes:
+    - .:/app
+  links:
+    - db
+  environment:
+    - PYTHONDONTWRITEBYTECODE=1
+    - DOCKER=1
+  command: ./bin/run-fig.sh
